@@ -4,6 +4,7 @@ import * as ts from "typescript";
 import * as tstl from ".";
 import * as CommandLineParser from "./CommandLineParser";
 import * as diagnosticFactories from "./diagnostics";
+import { CustomTransformer } from "./WowCustomTransformer";
 
 function createWatchStatusReporter(options?: ts.CompilerOptions): ts.WatchStatusReporter {
     return (ts as any).createWatchStatusReporter(ts.sys, shouldBePretty(options));
@@ -137,7 +138,8 @@ function performCompilation(
         configFileParsingDiagnostics,
     });
 
-    const { transpiledFiles, diagnostics: transpileDiagnostics } = tstl.transpile({ program });
+    const transformer = new CustomTransformer(program);
+    const { transpiledFiles, diagnostics: transpileDiagnostics } = tstl.transpile({ program, transformer });
 
     const diagnostics = ts.sortAndDeduplicateDiagnostics([
         ...ts.getPreEmitDiagnostics(program),
@@ -235,7 +237,8 @@ function updateWatchCompilationHost(
             }
         }
 
-        const { diagnostics: emitDiagnostics, transpiledFiles } = tstl.transpile({ program, sourceFiles });
+        const transformer = new CustomTransformer(program);
+        const { diagnostics: emitDiagnostics, transpiledFiles } = tstl.transpile({ program, transformer, sourceFiles });
 
         const emitResult = tstl.emitTranspiledFiles(options, transpiledFiles);
         emitResult.forEach(({ name, text }) => ts.sys.writeFile(name, text));
